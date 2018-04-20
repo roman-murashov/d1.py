@@ -5,6 +5,7 @@
 from ptrace.debugger.debugger import PtraceDebugger
 from ptrace.linux_proc import searchProcessByName
 import psutil
+import logging
 
 
 def find_exe_name(pid):
@@ -13,6 +14,7 @@ def find_exe_name(pid):
 
 	pid -- process ID
 	'''
+
 	for p in psutil.process_iter():
 		if p.pid == pid:
 			return p.name()
@@ -36,9 +38,7 @@ class Process:
 		exe_name -- executable name (optional)
 		pid      -- process ID (optional)
 		'''
-		# Sanity checks.
-		if not exe_name and not pid:
-			raise Exception("missing required parameter; at least one of exe_name and pid must be specified")
+		assert exe_name or pid
 
 		self.exe_name = exe_name
 		self.pid = pid
@@ -55,7 +55,7 @@ class Process:
 				raise Exception("unable to locate PID of executable {}".format(self.exe_name))
 
 		# Initialize debugger and attach process.
-		print("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
+		logging.debug("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
 		self.dbg = PtraceDebugger()
 		self.proc = self.dbg.addProcess(self.pid, False)
 
@@ -64,6 +64,7 @@ class Process:
 		'''
 		Implement `with` interface.
 		'''
+
 		return self
 
 
@@ -71,6 +72,7 @@ class Process:
 		'''
 		Implement `with` interface.
 		'''
+
 		self.__del__()
 
 
@@ -78,8 +80,9 @@ class Process:
 		'''
 		Unhook the process from the debugger.
 		'''
+
 		if self.proc:
-			print("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
+			logging.debug("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
 			self.proc.detach()
 			self.proc = None
 		if self.dbg:
@@ -94,6 +97,7 @@ class Process:
 		start -- start address
 		n     -- number of bytes to read
 		'''
+
 		return self.proc.readBytes(start, n)
 
 
@@ -104,4 +108,5 @@ class Process:
 		start -- start address
 		n     -- number of bytes to read
 		'''
+
 		return self.proc.writeBytes(addr, buf)
