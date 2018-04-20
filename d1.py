@@ -13,20 +13,20 @@ player_size = 0x54D8
 
 
 def check_player_num(player_num):
-	"""
+	'''
 	Validate player number.
-	"""
+	'''
 
 	if not (0 <= player_num and player_num < 4):
 		raise Exception("invalid player number; expected in range [0, 4), got {}".format(player_num))
 
 
 def get_player(player_num=0):
-	"""
+	'''
 	Return the contents of the given player struct.
 
 	player_num -- player number in range [0, 4)
-	"""
+	'''
 
 	with hook.Process(exe_name) as p:
 		check_player_num(player_num)
@@ -36,12 +36,12 @@ def get_player(player_num=0):
 
 
 def set_player(player, player_num=0):
-	"""
+	'''
 	Set the contents of the given player struct.
 
 	player     -- contents of the player struct
 	player_num -- player number in range [0, 4)
-	"""
+	'''
 
 	with hook.Process(exe_name) as p:
 		check_player_num(player_num)

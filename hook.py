@@ -2,33 +2,17 @@
 
 # Process hooking functions.
 
-#from ptrace.binding import ptrace_detach
 from ptrace.debugger.debugger import PtraceDebugger
 from ptrace.linux_proc import searchProcessByName
-#from ptrace.debugger.process import PtraceProcess
 import psutil
-import atexit
-
-# Debugger.
-dbg = PtraceDebugger()
-
-def quit_debugger():
-	"""
-	Terminate the debugger.
-	"""
-	if dbg:
-		dbg.quit()
-
-# Terminate the debugger on exit.
-atexit.register(quit_debugger)
 
 
 def find_exe_name(pid):
-	"""
+	'''
 	Locate the name of the executable with the given process ID.
 
 	pid -- process ID
-	"""
+	'''
 
 	for p in psutil.process_iter():
 		if p.pid == pid:
@@ -37,6 +21,8 @@ def find_exe_name(pid):
 
 
 class Process:
+	# Debugger
+	dbg = None
 	# Handle to the process.
 	proc = None
 	# Executable name.
@@ -45,12 +31,12 @@ class Process:
 	pid = 0
 
 	def __init__(self, exe_name="", pid=0):
-		"""
+		'''
 		Hook into the process.
 
 		exe_name -- executable name (optional)
 		pid      -- process ID (optional)
-		"""
+		'''
 
 		# Sanity checks.
 		if not exe_name and not pid:
@@ -75,7 +61,8 @@ class Process:
 
 		# Initialize debugger and attach process.
 		print("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
-		self.proc = dbg.addProcess(self.pid, False)
+		self.dbg = PtraceDebugger()
+		self.proc = self.dbg.addProcess(self.pid, False)
 
 
 	def __enter__(self):
@@ -87,33 +74,35 @@ class Process:
 
 
 	def __del__(self):
-		"""
+		'''
 		Unhook the process from the debugger.
-		"""
+		'''
 		print("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
 		if self.proc:
 			self.proc.detach()
-			dbg.deleteProcess(self.proc)
 			self.proc = None
+		if self.dbg:
+			self.dbg.quit()
+			self.dbg = None
 
 
 	def read_mem(self, start, n):
-		"""
+		'''
 		Read the memory region [start, start+n) of the process.
 
 		start -- start address
 		n     -- number of bytes to read
-		"""
+		'''
 
 		return self.proc.readBytes(start, n)
 
 
 	def write_mem(self, addr, buf):
-		"""
+		'''
 		Write the buffer to the specified address of the process.
 
 		start -- start address
 		n     -- number of bytes to read
-		"""
+		'''
 
 		return self.proc.writeBytes(addr, buf)
