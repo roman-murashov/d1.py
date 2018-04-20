@@ -4,6 +4,7 @@
 
 #from ptrace.binding import ptrace_detach
 from ptrace.debugger.debugger import PtraceDebugger
+from ptrace.linux_proc import searchProcessByName
 #from ptrace.debugger.process import PtraceProcess
 import psutil
 import atexit
@@ -32,19 +33,6 @@ def find_exe_name(pid):
 	for p in psutil.process_iter():
 		if p.pid == pid:
 			return p.name()
-	return None
-
-
-def find_pid(exe_name):
-	"""
-	Locate the process ID of the given executable.
-
-	exe_name -- executable name
-	"""
-
-	for p in psutil.process_iter():
-		if p.name() == exe_name:
-			return p.pid
 	return None
 
 
@@ -80,7 +68,7 @@ class Process:
 
 		# Locate PID from executable name.
 		if not self.pid:
-			self.pid = find_pid(self.exe_name)
+			self.pid = searchProcessByName(self.exe_name)
 			if not self.pid:
 				print("unable to locate PID of executable {}".format(self.exe_name))
 				return
