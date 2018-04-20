@@ -13,7 +13,6 @@ def find_exe_name(pid):
 
 	pid -- process ID
 	'''
-
 	for p in psutil.process_iter():
 		if p.pid == pid:
 			return p.name()
@@ -37,11 +36,9 @@ class Process:
 		exe_name -- executable name (optional)
 		pid      -- process ID (optional)
 		'''
-
 		# Sanity checks.
 		if not exe_name and not pid:
-			print("missing required parameter; at least one of exe_name and pid must be specified")
-			return
+			raise Exception("missing required parameter; at least one of exe_name and pid must be specified")
 
 		self.exe_name = exe_name
 		self.pid = pid
@@ -49,15 +46,13 @@ class Process:
 		if not exe_name:
 			self.exe_name = find_exe_name(self.pid)
 			if not self.exe_name:
-				print("unable to locate executable name of process with PID {}".format(self.pid))
-				return
+				raise Exception("unable to locate executable name of process with PID {}".format(self.pid))
 
 		# Locate PID from executable name.
 		if not self.pid:
 			self.pid = searchProcessByName(self.exe_name)
 			if not self.pid:
-				print("unable to locate PID of executable {}".format(self.exe_name))
-				return
+				raise Exception("unable to locate PID of executable {}".format(self.exe_name))
 
 		# Initialize debugger and attach process.
 		print("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
@@ -66,10 +61,16 @@ class Process:
 
 
 	def __enter__(self):
+		'''
+		Implement `with` interface.
+		'''
 		return self
 
 
 	def __exit__(self, type, value, traceback):
+		'''
+		Implement `with` interface.
+		'''
 		self.__del__()
 
 
@@ -77,8 +78,8 @@ class Process:
 		'''
 		Unhook the process from the debugger.
 		'''
-		print("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
 		if self.proc:
+			print("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
 			self.proc.detach()
 			self.proc = None
 		if self.dbg:
@@ -93,7 +94,6 @@ class Process:
 		start -- start address
 		n     -- number of bytes to read
 		'''
-
 		return self.proc.readBytes(start, n)
 
 
@@ -104,5 +104,4 @@ class Process:
 		start -- start address
 		n     -- number of bytes to read
 		'''
-
 		return self.proc.writeBytes(addr, buf)

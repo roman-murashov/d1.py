@@ -5,7 +5,7 @@
 import hook
 
 # Executable name.
-exe_name = "djavul.exe"
+djavul_exe_name = "djavul.exe"
 
 # Global variable addresses and struct sizes.
 players_addr = 0x686448
@@ -16,7 +16,6 @@ def check_player_num(player_num):
 	'''
 	Validate player number.
 	'''
-
 	if not (0 <= player_num and player_num < 4):
 		raise Exception("invalid player number; expected in range [0, 4), got {}".format(player_num))
 
@@ -27,8 +26,7 @@ def get_player(player_num=0):
 
 	player_num -- player number in range [0, 4)
 	'''
-
-	with hook.Process(exe_name) as p:
+	with hook.Process(djavul_exe_name) as p:
 		check_player_num(player_num)
 		addr = players_addr + player_size*player_num
 		buf = p.read_mem(addr, player_size)
@@ -42,8 +40,7 @@ def set_player(player, player_num=0):
 	player     -- contents of the player struct
 	player_num -- player number in range [0, 4)
 	'''
-
-	with hook.Process(exe_name) as p:
+	with hook.Process(djavul_exe_name) as p:
 		check_player_num(player_num)
 		addr = players_addr + player_size*player_num
 		buf = p.write_mem(addr, player)
