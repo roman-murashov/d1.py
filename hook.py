@@ -2,9 +2,24 @@
 
 # Process hooking functions.
 
+#from ptrace.binding import ptrace_detach
 from ptrace.debugger.debugger import PtraceDebugger
-from ptrace.debugger.process import PtraceProcess
+#from ptrace.debugger.process import PtraceProcess
 import psutil
+import atexit
+
+# Debugger.
+dbg = PtraceDebugger()
+
+def quit_debugger():
+	"""
+	Terminate the debugger.
+	"""
+	if dbg:
+		dbg.quit()
+
+# Terminate the debugger on exit.
+atexit.register(quit_debugger)
 
 
 def find_exe_name(pid):
@@ -34,8 +49,6 @@ def find_pid(exe_name):
 
 
 class Process:
-	# Debugger.
-	dbg = None
 	# Handle to the process.
 	proc = None
 	# Executable name.
@@ -74,28 +87,45 @@ class Process:
 
 		# Initialize debugger and attach process.
 		print("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
-		self.dbg = PtraceDebugger()
-		self.proc = self.dbg.addProcess(self.pid, False)
+		self.proc = dbg.addProcess(self.pid, False)
+
+
+	def __enter__(self):
+		return self
+
+
+	def __exit__(self, type, value, traceback):
+		self.__del__()
 
 
 	def __del__(self):
 		"""
-		Unhook the debugger from the process.
+		Unhook the process from the debugger.
 		"""
-
 		print("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
 		if self.proc:
 			self.proc.detach()
-		if self.dbg:
-			self.dbg.quit()
+			dbg.deleteProcess(self.proc)
+			self.proc = None
 
 
 	def read_mem(self, start, n):
 		"""
-		Read the memory region [start, start+n) from the process.
+		Read the memory region [start, start+n) of the process.
 
 		start -- start address
 		n     -- number of bytes to read
 		"""
 
 		return self.proc.readBytes(start, n)
+
+
+	def write_mem(self, addr, buf):
+		"""
+		Write the buffer to the specified address of the process.
+
+		start -- start address
+		n     -- number of bytes to read
+		"""
+
+		return self.proc.writeBytes(addr, buf)
