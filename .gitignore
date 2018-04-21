@@ -1,2 +1,7 @@
 __pycache__
 *.pyc
+*.h
+*.c
+*.so
+*.o
+*.h.pre
