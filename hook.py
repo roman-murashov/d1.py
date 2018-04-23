@@ -2,10 +2,10 @@
 
 # Process hooking functions.
 
-# TODO: update to Python 3 when lldb supports Python 3.
+# TODO: update to Python 3 when LLDB supports Python 3.
 import lldb
-import psutil
 import logging
+import psutil
 
 
 def find_pid(exe_name):
@@ -35,20 +35,24 @@ def find_exe_name(pid):
 
 
 class Process:
-	# Debugger
+	'''
+	Process interaction through the hooks of a debugger.
+	'''
+
+	# Debugger.
 	dbg = None
-	# Handle to the process.
-	process = None
-	# lldb command prompt.
-	prompt = None
+	# LLDB command interpreter (command prompt).
+	ci = None
 	# Executable name.
 	exe_name = ""
 	# Process ID.
 	pid = 0
 
+
 	def __init__(self, exe_name="", pid=0):
 		'''
-		Hook into the process.
+		Create a debugger for the process. Specify at least one of exe_name and
+		pid.
 
 		exe_name -- executable name (optional)
 		pid      -- process ID (optional)
@@ -70,16 +74,9 @@ class Process:
 				raise Exception("unable to locate PID of executable {}".format(self.exe_name))
 
 		# Initialize debugger and attach process.
-		logging.debug("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
+		logging.debug("create debugger for process {} with PID {}\n".format(self.exe_name, self.pid))
 		self.dbg = lldb.SBDebugger.Create()
-		self.prompt = self.dbg.GetCommandInterpreter()
-		target = self.dbg.CreateTarget('')
-		listener = self.dbg.GetListener()
-		error = lldb.SBError()
-		self.process = target.AttachToProcessWithID(listener, self.pid, error)
-		if not error.Success():
-			raise Exception("unable to attach to process {}; {}".format(self.pid, error.GetCString()))
-		assert self.process.GetProcessID() != lldb.LLDB_INVALID_PROCESS_ID
+		self.ci = self.dbg.GetCommandInterpreter()
 
 
 	def __enter__(self):
@@ -100,31 +97,44 @@ class Process:
 
 	def __del__(self):
 		'''
-		Unhook the process from the debugger.
+		Terminate the debugger of the process.
 		'''
 
-		if self.process:
-			logging.debug("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
-			self.process.Detach()
-			self.process = None
 		if self.dbg:
+			logging.debug("terminate debugger of process {} with PID {}\n".format(self.exe_name, self.pid))
 			self.dbg.Terminate()
 			self.dbg = None
 
 
-	def run_cmd(self, command):
+	def run_cmd(self, cmd):
 		'''
-		Run command in lldb prompt.
+		Run command in LLDB command interpreter (command prompt).
 
-		command -- lldb command
+		cmd -- LLDB command
 		'''
 
 		ret = lldb.SBCommandReturnObject()
-		self.prompt.HandleCommand(command, ret)
+		self.ci.HandleCommand(cmd, ret)
 		if ret.Succeeded():
 			print(ret.GetOutput())
 		else:
 			print(ret)
+
+
+	def attach(self):
+		'''
+		attach to the process.
+		'''
+
+		self.run_cmd('attach {}'.format(self.pid))
+
+
+	def detach(self):
+		'''
+		detach from the process.
+		'''
+
+		self.run_cmd('detach')
 
 
 	def read_mem(self, start, n):
@@ -135,8 +145,10 @@ class Process:
 		n     -- number of bytes to read
 		'''
 
-		output_path = '/tmp/out_%d.bin' % (self.pid)
+		output_path = '/tmp/out_{}.bin'.format(self.pid)
+		self.attach()
 		self.run_cmd('memory read --force -b -o %s 0x%08X 0x%08X' % (output_path, start, start+n))
+		self.detach()
 		# TODO: add error handling for open
 		with open(output_path, 'rb') as f:
 			return f.read()
@@ -150,10 +162,11 @@ class Process:
 		n     -- number of bytes to read
 		'''
 
-		print(buf)
-		input_path = '/tmp/in_%d.bin' % (self.pid)
+		input_path = '/tmp/in_{}.bin'.format(self.pid)
 		# TODO: add error handling for open
 		with open(input_path, 'wb') as f:
 			f.write(buf)
 			f.flush()
+		self.attach()
 		self.run_cmd('memory write -i %s 0x%08X' % (input_path, addr))
+		self.detach()
