@@ -1,4 +1,6 @@
-all: _types.cpython-36m-x86_64-linux-gnu.so clean
+all: _types.so clean
+
+#all: _types.cpython-36m-x86_64-linux-gnu.so clean
 
 notes_repo=~/Desktop/go/src/github.com/sanctuary/notes
 
@@ -15,7 +17,7 @@ types.h:
 types.h.pre: types.h
 	gcc -E -o $@ $^
 
-_types.cpython-36m-x86_64-linux-gnu.so: types.h.pre
+_types.so: types.h.pre
 	./gen_types.py
 
 clean:

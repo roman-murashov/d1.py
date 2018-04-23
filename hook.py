@@ -1,11 +1,24 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Process hooking functions.
 
-from ptrace.debugger.debugger import PtraceDebugger
-from ptrace.linux_proc import searchProcessByName
+# TODO: update to Python 3 when lldb supports Python 3.
+import lldb
 import psutil
 import logging
+
+
+def find_pid(exe_name):
+	'''
+	Locate the process ID of the executable.
+
+	exe_name -- executable name.
+	'''
+
+	for p in psutil.process_iter():
+		if p.name() == exe_name:
+			return p.pid
+	return None
 
 
 def find_exe_name(pid):
@@ -25,7 +38,9 @@ class Process:
 	# Debugger
 	dbg = None
 	# Handle to the process.
-	proc = None
+	process = None
+	# lldb command prompt.
+	prompt = None
 	# Executable name.
 	exe_name = ""
 	# Process ID.
@@ -50,14 +65,21 @@ class Process:
 
 		# Locate PID from executable name.
 		if not self.pid:
-			self.pid = searchProcessByName(self.exe_name)
+			self.pid = find_pid(self.exe_name)
 			if not self.pid:
 				raise Exception("unable to locate PID of executable {}".format(self.exe_name))
 
 		# Initialize debugger and attach process.
 		logging.debug("hooking into process {} with PID {}\n".format(self.exe_name, self.pid))
-		self.dbg = PtraceDebugger()
-		self.proc = self.dbg.addProcess(self.pid, False)
+		self.dbg = lldb.SBDebugger.Create()
+		self.prompt = self.dbg.GetCommandInterpreter()
+		target = self.dbg.CreateTarget('')
+		listener = self.dbg.GetListener()
+		error = lldb.SBError()
+		self.process = target.AttachToProcessWithID(listener, self.pid, error)
+		if not error.Success():
+			raise Exception("unable to attach to process {}; {}".format(self.pid, error.GetCString()))
+		assert self.process.GetProcessID() != lldb.LLDB_INVALID_PROCESS_ID
 
 
 	def __enter__(self):
@@ -81,13 +103,28 @@ class Process:
 		Unhook the process from the debugger.
 		'''
 
-		if self.proc:
+		if self.process:
 			logging.debug("unhooking from process {} with PID {}\n".format(self.exe_name, self.pid))
-			self.proc.detach()
-			self.proc = None
+			self.process.Detach()
+			self.process = None
 		if self.dbg:
-			self.dbg.quit()
+			self.dbg.Terminate()
 			self.dbg = None
+
+
+	def run_cmd(self, command):
+		'''
+		Run command in lldb prompt.
+
+		command -- lldb command
+		'''
+
+		ret = lldb.SBCommandReturnObject()
+		self.prompt.HandleCommand(command, ret)
+		if ret.Succeeded():
+			print(ret.GetOutput())
+		else:
+			print(ret)
 
 
 	def read_mem(self, start, n):
@@ -98,7 +135,11 @@ class Process:
 		n     -- number of bytes to read
 		'''
 
-		return self.proc.readBytes(start, n)
+		output_path = '/tmp/out_%d.bin' % (self.pid)
+		self.run_cmd('memory read --force -b -o %s 0x%08X 0x%08X' % (output_path, start, start+n))
+		# TODO: add error handling for open
+		with open(output_path, 'rb') as f:
+			return f.read()
 
 
 	def write_mem(self, addr, buf):
@@ -109,4 +150,10 @@ class Process:
 		n     -- number of bytes to read
 		'''
 
-		return self.proc.writeBytes(addr, buf)
+		print(buf)
+		input_path = '/tmp/in_%d.bin' % (self.pid)
+		# TODO: add error handling for open
+		with open(input_path, 'wb') as f:
+			f.write(buf)
+			f.flush()
+		self.run_cmd('memory write -i %s 0x%08X' % (input_path, addr))

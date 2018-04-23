@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Script and python library for interacting with Diablo 1 from Python.
 
