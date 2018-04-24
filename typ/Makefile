@@ -1,33 +1,27 @@
-all: _types.so clean
+all: _types.so
 
 #all: _types.cpython-36m-x86_64-linux-gnu.so clean
 
 notes_repo=~/Desktop/go/src/github.com/sanctuary/notes
 
-types.h:
-	cp ${notes_repo}/enums.h .
-	cp ${notes_repo}/sha1.h .
-	cp ${notes_repo}/structs.h .
-	cp ${notes_repo}/typedefs.h .
-	cp ${notes_repo}/types.h .
-	cp ${notes_repo}/windows.h .
-	sar -i "#include <stdarg.h>\n" "" typedefs.h
-	sar -i "uint16_t blocks[[]nblocks[]];" "uint16_t blocks[10];" structs.h
+notes/include/types.h:
+	rm -rf notes
+	cp -r ${notes_repo} notes
+	find notes/rdata notes/data notes/bss -type f -name '*.h' | xargs -I "{}" sar -i "#include[^\n]+[\n]" "" "{}"
+	find notes/rdata notes/data notes/bss -type f -name '*.h' | xargs -I "{}" sar -i "(__fastcall|__stdcall) " "" "{}"
+	sar -i "#include <stdarg.h>\n" "" notes/include/typedefs.h
+	sar -i "uint16_t blocks[[]nblocks[]];" "uint16_t blocks[10];" notes/include/structs.h
 
-types.h.pre: types.h
+notes/include/types.h.pre: notes/include/types.h
 	gcc -E -o $@ $^
 
-_types.so: types.h.pre
+_types.so: notes/include/types.h.pre
 	./gen_types.py
 
 clean:
-	rm -f types.h.pre _types.c *.o
-	rm -f enums.h
-	rm -f sha1.h
-	rm -f structs.h
-	rm -f typedefs.h
-	rm -f types.h
-	rm -f windows.h
+	rm -rf notes
+	rm -rf __pycache__
+	rm -f *.pyc
+	rm -f *.so *.o _types.c _types.cpp
 
-.PHONY:
-	clean
+.PHONY: all clean
