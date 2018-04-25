@@ -106,7 +106,7 @@ class Process:
 			self.dbg = None
 
 
-	def run_cmd(self, cmd):
+	def run_cmd(self, cmd, output=False):
 		'''
 		Run command in LLDB command interpreter (command prompt).
 
@@ -115,10 +115,11 @@ class Process:
 
 		ret = lldb.SBCommandReturnObject()
 		self.ci.HandleCommand(cmd, ret)
-		if ret.Succeeded():
-			print(ret.GetOutput())
-		else:
-			print(ret)
+		if output:
+			if ret.Succeeded():
+				print(ret.GetOutput())
+			else:
+				print(ret)
 
 
 	def attach(self):
