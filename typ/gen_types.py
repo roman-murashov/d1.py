@@ -15,14 +15,14 @@ def file_get_content(path):
 def gen_types():
 	ffi = cffi.FFI()
 
-	# Parse types.h
+	# Parse pre-processed types.h.
 	dir = os.path.dirname(__file__)
 	types_h_path = os.path.join(dir, 'notes/include/types.h.pre')
 	types_h_buf = file_get_content(types_h_path)
 	ffi.cdef(types_h_buf)
 	sources_buf = '#include "types.h"\n'
 
-	# Parse rdata, data and bss .h files
+	# Parse .h files without pre-process directives.
 	for path in get_sources():
 		buf = file_get_content(path)
 		ffi.cdef(buf)
@@ -32,6 +32,9 @@ def gen_types():
 		sources_buf,
 		include_dirs=['notes/include'],
 	)
+
+	# TODO: Process function declarations, and associated function definitions.
+
 	ffi.compile()
 
 if __name__ == '__main__':
