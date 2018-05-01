@@ -4,7 +4,7 @@ all: _types.so
 
 notes_repo=~/Desktop/go/src/github.com/sanctuary/notes
 
-notes/include/types.h:
+notes/include/types.h: sar
 	rm -rf notes
 	cp -r ${notes_repo} notes
 	find notes/rdata notes/data notes/bss -type f -name '*.h' | xargs -I "{}" sar -i "#include[^\n]+[\n]" "" "{}"
@@ -23,5 +23,14 @@ clean:
 	rm -rf __pycache__
 	rm -f *.pyc
 	rm -f *.so *.o _types.c _types.cpp
+
+sar:
+	@if ! which $@ &> /dev/null ; then \
+		echo "Please install the \"sar\" tool"; \
+		echo ""; \
+		echo "   go get -u github.com/mewkiz/cmd/sar"; \
+		echo ""; \
+		exit 1; \
+	fi
 
 .PHONY: all clean
