@@ -7,12 +7,14 @@ This project provides scripts for interacting with Diablo 1 from Python.
 1. Install [MSYS2](https://www.msys2.org/).
 2. Launch MSYS2 terminal.
 3. `pacman -Sy mingw-w64-x86_64-llvm mingw-w64-x86_64-lldb`
+4. `make -C typ`
 
 **Note**, the MSYS2 Windows port of LLDB is currently lacking Python support (see [upstream issue](https://github.com/Alexpux/MINGW-packages/issues/3222)).
 
 ## Installation on Linux
 
 1. `pacman -Sy lldb`
+2. `make -C typ`
 
 ## Usage
 
