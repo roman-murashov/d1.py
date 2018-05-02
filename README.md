@@ -14,7 +14,7 @@ This project provides scripts for interacting with Diablo 1 from Python.
 
 ## Installation on Linux
 
-1. `pacman -Sy lldb`
+1. `pacman -Sy lldb python2-cffi`
 2. `go get -u github.com/mewkiz/cmd/sar`
 3. `make -C typ`
 
