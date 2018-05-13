@@ -13,7 +13,7 @@ notes/include/types.h: sar
 	sar -i "uint16_t blocks[[]nblocks[]];" "uint16_t blocks[10];" notes/include/structs.h
 
 notes/include/types.h.pre: notes/include/types.h
-	gcc -E -o $@ $^
+	clang -E -o $@ $^
 
 _types.so: notes/include/types.h.pre
 	./gen_types.py
