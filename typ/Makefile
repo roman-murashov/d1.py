@@ -23,6 +23,7 @@ clean:
 	rm -rf __pycache__
 	rm -f *.pyc
 	rm -f *.pyd
+	rm -f *.def
 	rm -f *.so *.o _types.c _types.cpp
 
 sar:
