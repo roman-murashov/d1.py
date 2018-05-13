@@ -22,6 +22,7 @@ clean:
 	rm -rf notes
 	rm -rf __pycache__
 	rm -f *.pyc
+	rm -f *.pyd
 	rm -f *.so *.o _types.c _types.cpp
 
 sar:
